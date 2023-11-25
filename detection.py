@@ -3,11 +3,11 @@ import cv2
 import numpy as np
 from typing import Tuple, List
 
-MODEL=cv2.dnn.readNetFromDarknet(cfgFile= "yolov3.cfg",darknetModel="yolov3.weights")
+MODEL=cv2.dnn.readNetFromDarknet(cfgFile= "config/yolov3.cfg",darknetModel="config/yolov3.weights")
 MODEL.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 
 def yolo_v3_pipeline(img:np.ndarray)->Tuple[np.ndarray,List[str],List[float]]:
-    classes = open('coco.names').read().strip().split('\n')
+    classes = open('config/coco.names').read().strip().split('\n')
     np.random.seed(1337)
     colors = np.random.randint(0, 255, size=(len(classes), 3), dtype='uint8')
     blob = cv2.dnn.blobFromImage(img, 1/255.0, (416, 416), swapRB=True, crop=False) # blob for darknet
