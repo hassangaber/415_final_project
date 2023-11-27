@@ -127,79 +127,101 @@ def find_nearest_key(dictionary, target_key, max_distance=20):
     else:
         return None
 
-def find_nearest_key(dictionary, target_key, max_distance=20):
-    nearest_key = None
-    smallest_distance = np.inf
+# def find_nearest_key(dictionary, target_key, max_distance=20):
+#     nearest_key = None
+#     smallest_distance = np.inf
 
-    for key in dictionary.keys():
-        distance = np.linalg.norm(np.array(key) - np.array(target_key))
-        if distance < smallest_distance:
-            smallest_distance = distance
-            nearest_key = key
+#     for key in dictionary.keys():
+#         distance = np.linalg.norm(np.array(key) - np.array(target_key))
+#         if distance < smallest_distance:
+#             smallest_distance = distance
+#             nearest_key = key
 
-    if smallest_distance <= max_distance:
-        return nearest_key
-    else:
-        return None
+#     if smallest_distance <= max_distance:
+#         return nearest_key
+#     else:
+#         return None
 
 # PURPOSE: Identifying if the current box was present in the previous frames
 # PARAMETERS: All the vehicular detections of the previous frames, 
 #			the coordinates of the box of previous detections
 # RETURN: True if the box was current box was present in the previous frames;
 #		  False if the box was not present in the previous frames
+# def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
+#     centerX, centerY, width, height = current_box
+#     dist = np.inf  # Initializing the minimum distance
+#     size_consistency_threshold = 0.2  # Allowable change in size
+#     aspect_ratio_consistency_threshold = 0.1  # Allowable change in aspect ratio
+#     min_consecutive_frames = 3  # Minimum number of frames for temporal consistency
+
+#     frame_num = -1  # Initialize frame_num to a default value
+
+#     for i in range(FRAMES_BEFORE_CURRENT):
+#         coordinate_list = list(previous_frame_detections[i].keys())
+#         if len(coordinate_list) == 0:
+#             continue
+#         tree = spatial.KDTree(coordinate_list)
+#         temp_dist, index = tree.query([(centerX, centerY)])
+
+#         if temp_dist < dist:
+#             nearest_key = find_nearest_key(previous_frame_detections[i], (centerX, centerY))
+
+#             if nearest_key is None:
+#                 continue
+#             previous_box = previous_frame_detections[i][nearest_key]
+
+#             # Check if previous_box is a tuple before unpacking
+#             if not isinstance(previous_box, tuple):
+#                 print(f"Warning: Expected a tuple for previous_box, got {previous_box}")
+#                 continue
+#             prev_centerX, prev_centerY, prev_width, prev_height = previous_box
+
+#             # Size consistency check
+#             if (abs(prev_width - width) > size_consistency_threshold * prev_width or
+#                     abs(prev_height - height) > size_consistency_threshold * prev_height):
+#                 continue
+
+#             # Aspect ratio consistency check
+#             current_aspect_ratio = width / height
+#             prev_aspect_ratio = prev_width / prev_height
+#             if abs(current_aspect_ratio - prev_aspect_ratio) > aspect_ratio_consistency_threshold:
+#                 continue
+
+#             # Update minimum distance and frame number
+#             dist = temp_dist
+#             frame_num = i
+
+#     # Temporal consistency check
+#     if frame_num != -1:
+#         object_id = previous_frame_detections[frame_num][nearest_key]
+#         current_detections[(centerX, centerY)] = object_id
+#     else:
+#         # This is a new object
+#         current_detections[(centerX, centerY)] = (centerX, centerY, width, height)
+
+#     return True
+
 def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
-    centerX, centerY, width, height = current_box
-    dist = np.inf  # Initializing the minimum distance
-    size_consistency_threshold = 0.2  # Allowable change in size
-    aspect_ratio_consistency_threshold = 0.1  # Allowable change in aspect ratio
-    min_consecutive_frames = 3  # Minimum number of frames for temporal consistency
+	centerX, centerY, width, height = current_box
+	dist = np.inf #Initializing the minimum distance
+	# Iterating through all the k-dimensional trees
+	for i in range(FRAMES_BEFORE_CURRENT):
+		coordinate_list = list(previous_frame_detections[i].keys())
+		if len(coordinate_list) == 0: # When there are no detections in the previous frame
+			continue
+		# Finding the distance to the closest point and the index
+		temp_dist, index = spatial.KDTree(coordinate_list).query([(centerX, centerY)])
+		if (temp_dist < dist):
+			dist = temp_dist
+			frame_num = i
+			coord = coordinate_list[index[0]]
 
-    frame_num = -1  # Initialize frame_num to a default value
+	if (dist > (max(width, height)/2)):
+		return False
 
-    for i in range(FRAMES_BEFORE_CURRENT):
-        coordinate_list = list(previous_frame_detections[i].keys())
-        if len(coordinate_list) == 0:
-            continue
-        tree = spatial.KDTree(coordinate_list)
-        temp_dist, index = tree.query([(centerX, centerY)])
-
-        if temp_dist < dist:
-            nearest_key = find_nearest_key(previous_frame_detections[i], (centerX, centerY))
-
-            if nearest_key is None:
-                continue
-            previous_box = previous_frame_detections[i][nearest_key]
-
-            # Check if previous_box is a tuple before unpacking
-            if not isinstance(previous_box, tuple):
-                print(f"Warning: Expected a tuple for previous_box, got {previous_box}")
-                continue
-            prev_centerX, prev_centerY, prev_width, prev_height = previous_box
-
-            # Size consistency check
-            if (abs(prev_width - width) > size_consistency_threshold * prev_width or
-                    abs(prev_height - height) > size_consistency_threshold * prev_height):
-                continue
-
-            # Aspect ratio consistency check
-            current_aspect_ratio = width / height
-            prev_aspect_ratio = prev_width / prev_height
-            if abs(current_aspect_ratio - prev_aspect_ratio) > aspect_ratio_consistency_threshold:
-                continue
-
-            # Update minimum distance and frame number
-            dist = temp_dist
-            frame_num = i
-
-    # Temporal consistency check
-    if frame_num != -1:
-        object_id = previous_frame_detections[frame_num][nearest_key]
-        current_detections[(centerX, centerY)] = object_id
-    else:
-        # This is a new object
-        current_detections[(centerX, centerY)] = (centerX, centerY, width, height)
-
-    return True
+	# Keeping the vehicle ID constant
+	current_detections[(centerX, centerY)] = previous_frame_detections[frame_num][coord]
+	return True
 
 
 # Global sets to keep track of counted IDs
