@@ -10,8 +10,8 @@ import os
 #All these classes will be counted as 'vehicles'
 list_of_vehicles = ["bicycle","car","motorbike","bus","truck", "train"]
 # Setting the threshold for the number of frames to search a vehicle for
-FRAMES_BEFORE_CURRENT = 10  
-inputWidth, inputHeight = 416, 416
+FRAMES_BEFORE_CURRENT = 30
+inputWidth, inputHeight = 256, 256
 
 #Parse command line arguments and extract the values required
 # LABELS, weightsPath, configPath, inputVideoPath, outputVideoPath,\
@@ -144,63 +144,54 @@ def boxInPreviousFrames(previous_frame_detections, current_box, current_detectio
 	current_detections[(centerX, centerY)] = previous_frame_detections[frame_num][coord]
 	return True
 
+# Global sets to keep track of counted IDs
+counted_vehicle_ids = set()
+counted_people_ids = set()
+
 def count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_frame_detections, frame):
-	current_detections = {}
-	# ensure at least one detection exists
-	if len(idxs) > 0:
-		# loop over the indices we are keeping
-		for i in idxs.flatten():
-			# extract the bounding box coordinates
-			(x, y) = (boxes[i][0], boxes[i][1])
-			(w, h) = (boxes[i][2], boxes[i][3])
-			
-			centerX = x + (w//2)
-			centerY = y+ (h//2)
+    current_detections = {}
+    
+    if len(idxs) > 0:
+        for i in idxs.flatten():
+            (x, y) = (boxes[i][0], boxes[i][1])
+            (w, h) = (boxes[i][2], boxes[i][3])
+            centerX = x + (w // 2)
+            centerY = y + (h // 2)
 
-			# When the detection is in the list of vehicles, AND
-			# it crosses the line AND
-			# the ID of the detection is not present in the vehicles
-			if (LABELS[classIDs[i]] in list_of_vehicles):
-				current_detections[(centerX, centerY)] = vehicle_count 
-				if (not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)):
-					vehicle_count += 1
-					# vehicle_crossed_line_flag += True
-				# else: #ID assigning
-					#Add the current detection mid-point of box to the list of detected items
-				# Get the ID corresponding to the current detection
+            # Check if the detected object is a vehicle or person
+            if LABELS[classIDs[i]] in list_of_vehicles:
+                if not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections):
+                    # Assign a new ID if this is a new detection
+                    ID = vehicle_count
+                    current_detections[(centerX, centerY)] = ID
 
-				ID = current_detections.get((centerX, centerY))
-				# If there are two detections having the same ID due to being too close, 
-				# then assign a new ID to current detection.
-				if (list(current_detections.values()).count(ID) > 1):
-					current_detections[(centerX, centerY)] = vehicle_count
-					vehicle_count += 1 
+                    if ID not in counted_vehicle_ids:
+                        counted_vehicle_ids.add(ID)
+                        vehicle_count += 1
 
-				#Display the ID at the center of the box
-				cv2.putText(frame, str(ID), (centerX, centerY),\
-					cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
-				
-			if (LABELS[classIDs[i]] in ['person']):
-				current_detections[(centerX, centerY)] = people_count 
-				if (not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)):
-					people_count += 1
-					# vehicle_crossed_line_flag += True
-				# else: #ID assigning
-					#Add the current detection mid-point of box to the list of detected items
-				# Get the ID corresponding to the current detection
+                else:
+                    # Use existing ID for this detection
+                    ID = current_detections.get((centerX, centerY), vehicle_count)
 
-				ID = current_detections.get((centerX, centerY))
-				# If there are two detections having the same ID due to being too close, 
-				# then assign a new ID to current detection.
-				if (list(current_detections.values()).count(ID) > 1):
-					current_detections[(centerX, centerY)] = people_count
-					people_count += 1 
+                cv2.putText(frame, str(ID), (centerX, centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0, 0, 255], 2)
 
-				#Display the ID at the center of the box
-				cv2.putText(frame, str(ID), (centerX, centerY),\
-					cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
-				
-	return vehicle_count, people_count, current_detections
+            elif LABELS[classIDs[i]] == 'person':
+                if not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections):
+                    # Assign a new ID if this is a new detection
+                    ID = people_count
+                    current_detections[(centerX, centerY)] = ID
+
+                    if ID not in counted_people_ids:
+                        counted_people_ids.add(ID)
+                        people_count += 1
+
+                else:
+                    # Use existing ID for this detection
+                    ID = current_detections.get((centerX, centerY), people_count)
+
+                cv2.putText(frame, str(ID), (centerX, centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0, 0, 255], 2)
+
+    return vehicle_count, people_count, current_detections
 
 # load our YOLO object detector trained on COCO dataset (80 classes)
 # and determine only the *output* layer names that we need from YOLO
