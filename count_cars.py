@@ -20,12 +20,11 @@ inputWidth, inputHeight = 256, 256
 LABELS=open('config/coco.names').read().strip().split('\n')
 weightsPath='config/yolov3.weights'
 configPath='config/yolov3.cfg'
-inputVideoPath='data/mcgill_drive.mp4'
+inputVideoPath='data/st-catherines_drive.mp4'
 outputVideoPath='data/out.avi'
 preDefinedConfidence=0.5
 preDefinedThreshold=0.3
 USE_GPU=0
-
 
 # Initialize a list of colors to represent each possible class label
 np.random.seed(42)
@@ -117,32 +116,80 @@ def initializeVideoWriter(video_width, video_height, videoStream):
 	return cv2.VideoWriter(outputVideoPath, fourcc, sourceVideofps,
 		(video_width, video_height), True)
 
+def find_nearest_key(dictionary, target_key, max_distance=20):
+    nearest_key = None
+    smallest_distance = np.inf
+
+    for key in dictionary.keys():
+        distance = np.linalg.norm(np.array(key) - np.array(target_key))
+        if distance < smallest_distance:
+            smallest_distance = distance
+            nearest_key = key
+
+    if smallest_distance <= max_distance:
+        return nearest_key
+    else:
+        return None
+
 # PURPOSE: Identifying if the current box was present in the previous frames
 # PARAMETERS: All the vehicular detections of the previous frames, 
 #			the coordinates of the box of previous detections
 # RETURN: True if the box was current box was present in the previous frames;
 #		  False if the box was not present in the previous frames
 def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
-	centerX, centerY, width, height = current_box
-	dist = np.inf #Initializing the minimum distance
-	# Iterating through all the k-dimensional trees
-	for i in range(FRAMES_BEFORE_CURRENT):
-		coordinate_list = list(previous_frame_detections[i].keys())
-		if len(coordinate_list) == 0: # When there are no detections in the previous frame
-			continue
-		# Finding the distance to the closest point and the index
-		temp_dist, index = spatial.KDTree(coordinate_list).query([(centerX, centerY)])
-		if (temp_dist < dist):
-			dist = temp_dist
-			frame_num = i
-			coord = coordinate_list[index[0]]
+    centerX, centerY, width, height = current_box
+    dist = np.inf  # Initializing the minimum distance
+    size_consistency_threshold = 0.2  # Allowable change in size
+    aspect_ratio_consistency_threshold = 0.1  # Allowable change in aspect ratio
+    min_consecutive_frames = 3  # Minimum number of frames for temporal consistency
 
-	if (dist > (max(width, height)/2)):
-		return False
+    frame_num = -1  # Initialize frame_num to a default value
 
-	# Keeping the vehicle ID constant
-	current_detections[(centerX, centerY)] = previous_frame_detections[frame_num][coord]
-	return True
+    for i in range(FRAMES_BEFORE_CURRENT):
+        coordinate_list = list(previous_frame_detections[i].keys())
+        if len(coordinate_list) == 0:
+            continue
+        tree = spatial.KDTree(coordinate_list)
+        temp_dist, index = tree.query([(centerX, centerY)])
+
+        if temp_dist < dist:
+            nearest_key = find_nearest_key(previous_frame_detections[i], (centerX, centerY))
+
+            if nearest_key is None:
+                continue
+            previous_box = previous_frame_detections[i][nearest_key]
+
+            # Check if previous_box is a tuple before unpacking
+            if not isinstance(previous_box, tuple):
+                print(f"Warning: Expected a tuple for previous_box, got {previous_box}")
+                continue
+            prev_centerX, prev_centerY, prev_width, prev_height = previous_box
+
+            # Size consistency check
+            if (abs(prev_width - width) > size_consistency_threshold * prev_width or
+                    abs(prev_height - height) > size_consistency_threshold * prev_height):
+                continue
+
+            # Aspect ratio consistency check
+            current_aspect_ratio = width / height
+            prev_aspect_ratio = prev_width / prev_height
+            if abs(current_aspect_ratio - prev_aspect_ratio) > aspect_ratio_consistency_threshold:
+                continue
+
+            # Update minimum distance and frame number
+            dist = temp_dist
+            frame_num = i
+
+    # Temporal consistency check
+    if frame_num != -1:
+        object_id = previous_frame_detections[frame_num][nearest_key]
+        current_detections[(centerX, centerY)] = object_id
+    else:
+        # This is a new object
+        current_detections[(centerX, centerY)] = (centerX, centerY, width, height)
+
+    return True
+
 
 # Global sets to keep track of counted IDs
 counted_vehicle_ids = set()
@@ -221,7 +268,8 @@ x2_line = video_width
 y2_line = video_height//2
 
 #Initialization
-previous_frame_detections = [{(0,0):0} for i in range(FRAMES_BEFORE_CURRENT)]
+previous_frame_detections = [{} for _ in range(FRAMES_BEFORE_CURRENT)]
+
 # previous_frame_detections = [spatial.KDTree([(0,0)])]*FRAMES_BEFORE_CURRENT # Initializing all trees
 num_frames, vehicle_count, people_count = 0, 0, 0
 writer = initializeVideoWriter(video_width, video_height, videoStream)
