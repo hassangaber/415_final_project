@@ -14,7 +14,7 @@ def yolo_v3_pipeline(img:np.ndarray)->Tuple[np.ndarray,List[str],List[float]]:
     blob = cv2.dnn.blobFromImage(img, 1/255.0, (416, 416), swapRB=True, crop=False) # blob for darknet
     MODEL.setInput(blob)
     LAYERS = MODEL.getLayerNames()
-    LAYERS = [LAYERS[i[0] - 1] for i in MODEL.getUnconnectedOutLayers()]
+    LAYERS = [LAYERS[i - 1] for i in MODEL.getUnconnectedOutLayers()]
     outs = MODEL.forward(LAYERS)
     boxes = []
     confidences = []

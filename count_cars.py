@@ -8,10 +8,10 @@ import os
 #from input_retrieval import *
 
 #All these classes will be counted as 'vehicles'
-list_of_vehicles = ["bicycle","car","motorbike","bus","truck", "train"]
+list_of_vehicles = ["bicycle","car","motorbike","bus"]
 # Setting the threshold for the number of frames to search a vehicle for
-FRAMES_BEFORE_CURRENT = 10  
-inputWidth, inputHeight = 416, 416
+FRAMES_BEFORE_CURRENT = 30  
+inputWidth, inputHeight = 256, 256
 
 #Parse command line arguments and extract the values required
 # LABELS, weightsPath, configPath, inputVideoPath, outputVideoPath,\
@@ -29,8 +29,7 @@ USE_GPU=0
 
 # Initialize a list of colors to represent each possible class label
 np.random.seed(42)
-COLORS = np.random.randint(0, 255, size=(len(LABELS), 3),
-	dtype="uint8")
+COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
 # PURPOSE: Displays the vehicle count on the top-left corner of the frame
 # PARAMETERS: Frame on which the count is displayed, the count number of vehicles 
 # RETURN: N/A
@@ -38,9 +37,9 @@ def displayVehicleCount(frame, vehicle_count):
 	cv2.putText(
 		frame, #Image
 		'Detected Vehicles: ' + str(vehicle_count), #Label
-		(20, 20), #Position
+		(40, 40), #Position
 		cv2.FONT_HERSHEY_SIMPLEX, #Font
-		1.0, #Size
+		2, #Size
 		(0, 0xFF, 0), #Color
 		2, #Thickness
 		cv2.FONT_HERSHEY_COMPLEX_SMALL,
@@ -50,9 +49,9 @@ def displayPedestrianCount(frame, pedestrian_count):
 	cv2.putText(
 		frame, #Image
 		'Detected Pedestrians: ' + str(pedestrian_count), #Label
-		(20, 60), #Position
+		(20, 80), #Position
 		cv2.FONT_HERSHEY_SIMPLEX, #Font
-		1.0, #Size
+		2, #Size
 		(0, 0x7F, 0), #Color
 		2, #Thickness
 		cv2.FONT_HERSHEY_COMPLEX_SMALL,
@@ -98,10 +97,8 @@ def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame):
 			# draw a bounding box rectangle and label on the frame
 			color = [int(c) for c in COLORS[classIDs[i]]]
 			cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-			text = "{}: {:.4f}".format(LABELS[classIDs[i]],
-				confidences[i])
-			cv2.putText(frame, text, (x, y - 5),
-				cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+			text = "{}: {:.4f}".format(LABELS[classIDs[i]],confidences[i])
+			cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 			#Draw a green dot in the middle of the box
 			cv2.circle(frame, (x + (w//2), y+ (h//2)), 2, (0, 0xFF, 0), thickness=2)
 
@@ -114,8 +111,7 @@ def initializeVideoWriter(video_width, video_height, videoStream):
 	sourceVideofps = videoStream.get(cv2.CAP_PROP_FPS)
 	# initialize our video writer
 	fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-	return cv2.VideoWriter(outputVideoPath, fourcc, sourceVideofps,
-		(video_width, video_height), True)
+	return cv2.VideoWriter(outputVideoPath, fourcc, sourceVideofps, (video_width, video_height), True)
 
 # PURPOSE: Identifying if the current box was present in the previous frames
 # PARAMETERS: All the vehicular detections of the previous frames, 
@@ -155,12 +151,12 @@ def count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_
 			(w, h) = (boxes[i][2], boxes[i][3])
 			
 			centerX = x + (w//2)
-			centerY = y+ (h//2)
+			centerY = y + (h//2)
 
 			# When the detection is in the list of vehicles, AND
 			# it crosses the line AND
 			# the ID of the detection is not present in the vehicles
-			if (LABELS[classIDs[i]] in list_of_vehicles):
+			if (LABELS[classIDs[i]] in ['car']):
 				current_detections[(centerX, centerY)] = vehicle_count 
 				if (not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)):
 					vehicle_count += 1
@@ -173,12 +169,12 @@ def count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_
 				# If there are two detections having the same ID due to being too close, 
 				# then assign a new ID to current detection.
 				if (list(current_detections.values()).count(ID) > 1):
+					print('Close cars detected.')
 					current_detections[(centerX, centerY)] = vehicle_count
 					vehicle_count += 1 
 
 				#Display the ID at the center of the box
-				cv2.putText(frame, str(ID), (centerX, centerY),\
-					cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
+				cv2.putText(frame, str(ID), (centerX, centerY),cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
 				
 			if (LABELS[classIDs[i]] in ['person']):
 				current_detections[(centerX, centerY)] = people_count 
@@ -193,12 +189,12 @@ def count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_
 				# If there are two detections having the same ID due to being too close, 
 				# then assign a new ID to current detection.
 				if (list(current_detections.values()).count(ID) > 1):
+					print('Close people detected.')
 					current_detections[(centerX, centerY)] = people_count
 					people_count += 1 
 
 				#Display the ID at the center of the box
-				cv2.putText(frame, str(ID), (centerX, centerY),\
-					cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
+				cv2.putText(frame, str(ID), (centerX, centerY),cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0,0,255], 2)
 				
 	return vehicle_count, people_count, current_detections
 
@@ -211,8 +207,8 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 if USE_GPU:
 	net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 	net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-else:
-    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+    
+net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 	
 ln = net.getLayerNames()
 ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
@@ -298,13 +294,6 @@ while True:
 				confidences.append(float(confidence))
 				classIDs.append(classID)
 
-	# # Changing line color to green if a vehicle in the frame has crossed the line 
-	# if vehicle_crossed_line_flag:
-	# 	cv2.line(frame, (x1_line, y1_line), (x2_line, y2_line), (0, 0xFF, 0), 2)
-	# # Changing line color to red if a vehicle in the frame has not crossed the line 
-	# else:
-	# 	cv2.line(frame, (x1_line, y1_line), (x2_line, y2_line), (0, 0, 0xFF), 2)
-
 	# apply non-maxima suppression to suppress weak, overlapping
 	# bounding boxes
 	idxs = cv2.dnn.NMSBoxes(boxes, confidences, preDefinedConfidence,preDefinedThreshold)
@@ -312,12 +301,16 @@ while True:
 	# Draw detection box 
 	drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame)
 
-	vehicle_count, people_count,current_detections = count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_frame_detections, frame)
+	vehicle_count, people_count, current_detections = count_vehicles(idxs, 
+																    boxes, 
+																	classIDs, 
+																	vehicle_count, 
+																	people_count, 
+																	previous_frame_detections, 
+																	frame)
 
-	print(vehicle_count, people_count)
 	# Display Vehicle Count if a vehicle has passed the line 
 	displayVehicleCount(frame, vehicle_count)
-
 	displayPedestrianCount(frame, people_count)
 
     # write the output frame to disk
