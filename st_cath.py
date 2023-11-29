@@ -157,26 +157,6 @@ def find_nearest_key(dictionary, target_key, max_distance=20):
         return nearest_key
     else:
         return None
-	
-# def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
-# 	centerX, centerY, width, height = current_box
-# 	dist = np.inf #Initializing the minimum distance
-# 	# Iterating through all the k-dimensional trees
-# 	for i in range(FRAMES_BEFORE_CURRENT):
-# 		coordinate_list = list(previous_frame_detections[i].keys())
-# 		if len(coordinate_list) == 0: # When there are no detections in the previous frame
-# 			continue
-# 		# Finding the distance to the closest point and the index
-# 		temp_dist, index = spatial.KDTree(coordinate_list).query([(centerX, centerY)])
-# 		if (temp_dist < dist):
-# 			dist = temp_dist
-# 			frame_num = i
-# 			coord = coordinate_list[index[0]]
-# 	if (dist > (max(width, height)/2)):
-# 		return False
-# 	# Keeping the vehicle ID constant
-# 	current_detections[(centerX, centerY)] = previous_frame_detections[frame_num][coord]
-# 	return True
 
 def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
     centerX, centerY, width, height = current_box
@@ -222,45 +202,6 @@ def checkBoundingBoxIntersection(box1, box2):
         return True
     else:
         return False
-    
-# def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_frame_detections, frame, movement_threshold=20, required_stationary_frames=10):
-#     current_detections = {}
-
-#     if len(idxs) > 0:
-#         for i in idxs.flatten():
-#             (x, y) = (boxes[i][0], boxes[i][1])
-#             (w, h) = (boxes[i][2], boxes[i][3])
-#             centerX = x + (w // 2)
-#             centerY = y + (h // 2)
-
-#             if LABELS[classIDs[i]] in list_of_vehicles:
-#                 is_new_detection = not boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)
-#                 ID = current_detections.get((centerX, centerY), parked_vehicle_count)
-#                 # Update or initialize the position history
-#                 if ID in list(vehicle_position_history.keys()):
-#                     print(ID)
-#                     vehicle_position_history[ID].append((centerX, centerY))
-#                 else:
-#                     print(ID)
-#                     vehicle_position_history[ID] = [(centerX, centerY)]
-
-#                 # Check if the vehicle is stationary
-#                 if len(vehicle_position_history[ID]) >= required_stationary_frames:
-#                     positions = vehicle_position_history[ID][-required_stationary_frames:]
-#                     distances = [np.linalg.norm(np.array(positions[j]) - np.array(positions[j-1])) for j in range(1, len(positions))]
-#                     if max(distances) < movement_threshold and ID not in counted_parked_vehicle_ids:
-#                         counted_parked_vehicle_ids.add(ID)
-#                         parked_vehicle_count += 1
-
-#                 # For new detections, assign a new ID
-#                 if is_new_detection:
-#                     current_detections[(centerX, centerY)] = ID if ID in vehicle_position_history else parked_vehicle_count
-
-#                 cv2.putText(frame, str(ID), (centerX, centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0, 0, 255], 2)
-
-#     return parked_vehicle_count, current_detections
-
-# Initialize this dictionary outside the function
 
 def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_frame_detections, frame,
                           movement_threshold=20, required_stationary_frames=10, debug=False):
@@ -308,47 +249,6 @@ def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_
                         cv2.circle(frame, pos, 2, [0, 255, 0], -1)  # Draw green dots for position history
 
     return parked_vehicle_count
-
-
-# def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_frame_detections, frame, movement_threshold=20, required_stationary_frames=10):
-#     current_detections = {}
-
-#     # Use a global counter for unique ID assignment
-#     global unique_id_counter
-
-#     if len(idxs) > 0:
-#         for i in idxs.flatten():
-#             (x, y) = (boxes[i][0], boxes[i][1])
-#             (w, h) = (boxes[i][2], boxes[i][3])
-#             centerX = x + (w // 2)
-#             centerY = y + (h // 2)
-
-#             if LABELS[classIDs[i]] in list_of_vehicles:
-#                 # Check if the box is in previous frames and get the ID
-#                 found_in_previous, ID = boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)
-
-#                 if not found_in_previous:
-#                     ID = unique_id_counter
-#                     unique_id_counter += 1  # Increment the global ID counter
-#                 current_detections[(centerX, centerY)] = ID  # Update current detections
-
-#                 # Update or initialize the position history
-#                 if ID in vehicle_position_history:
-#                     vehicle_position_history[ID].append((centerX, centerY))
-#                 else:
-#                     vehicle_position_history[ID] = [(centerX, centerY)]
-
-#                 # Check if the vehicle is stationary
-#                 if len(vehicle_position_history[ID]) >= required_stationary_frames:
-#                     positions = vehicle_position_history[ID][-required_stationary_frames:]
-#                     distances = [np.linalg.norm(np.array(positions[j]) - np.array(positions[j-1])) for j in range(1, len(positions))]
-#                     if max(distances) < movement_threshold and ID not in counted_parked_vehicle_ids:
-#                         counted_parked_vehicle_ids.add(ID)
-#                         parked_vehicle_count += 1
-
-#                 cv2.putText(frame, str(ID), (centerX, centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, [0, 0, 255], 2)
-
-#     return parked_vehicle_count #, current_detections
 
 def count_vehicles(idxs, boxes, classIDs, vehicle_count, people_count, previous_frame_detections, frame):
     current_detections = {}
