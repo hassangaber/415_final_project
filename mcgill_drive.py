@@ -8,7 +8,7 @@ import os
 #from input_retrieval import *
 
 #All these classes will be counted as 'vehicles'
-list_of_vehicles = ["bicycle","car","motorbike","bus"]
+list_of_vehicles = ["car"]
 # Setting the threshold for the number of frames to search a vehicle for
 FRAMES_BEFORE_CURRENT = 30
 inputWidth, inputHeight = 256, 256
