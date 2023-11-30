@@ -113,7 +113,7 @@ def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_
 
             if LABELS[classIDs[i]] in list_of_vehicles:
                 # Check if the box is in previous frames and get the ID
-                found_in_previous, ID = boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)
+                found_in_previous, ID = boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections, 1)
 
                 if not found_in_previous:
                     ID = unique_id_counter
