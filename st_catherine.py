@@ -8,7 +8,17 @@ import cv2
 
 """
 Script for object detection of Ste Catherine drive which should be run twice, alternating the `black_out_sides` boolean.
+
+
+REFERENCES
+
+1. https://github.com/theAIGuysCode/yolov3_deepsort/blob/master/deep_sort/linear_assignment.py
+2. https://github.com/guptavasu1213/Yolo-Vehicle-Counter/blob/master/yolo_video.py
+3. https://www.kaggle.com/code/balraj98/yolo-v5-car-object-detection
+4. https://arxiv.org/pdf/2210.10226.pdf
+
 """
+
 np.random.seed(42)
 INPUT_VIDEO='data/st-catherines_drive.mp4'
 LABELS=open('config/coco.names').read().strip().split('\n')

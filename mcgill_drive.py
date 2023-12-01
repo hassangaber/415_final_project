@@ -5,10 +5,19 @@ import time
 from scipy import spatial
 import cv2
 import os
-#from input_retrieval import *
+
+"""
+Script for object detection of McGill Drive drive which should be run once.
+
+REFERENCES
+
+1. https://github.com/theAIGuysCode/yolov3_deepsort/blob/master/deep_sort/linear_assignment.py
+2. https://github.com/guptavasu1213/Yolo-Vehicle-Counter/blob/master/yolo_video.py
+
+"""
 
 #All these classes will be counted as 'vehicles'
-list_of_vehicles = ["bicycle","car","motorbike","bus"]
+list_of_vehicles = ["car"]
 # Setting the threshold for the number of frames to search a vehicle for
 FRAMES_BEFORE_CURRENT = 30
 inputWidth, inputHeight = 256, 256
@@ -113,7 +122,7 @@ def count_parked_vehicles(idxs, boxes, classIDs, parked_vehicle_count, previous_
 
             if LABELS[classIDs[i]] in list_of_vehicles:
                 # Check if the box is in previous frames and get the ID
-                found_in_previous, ID = boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections)
+                found_in_previous, ID = boxInPreviousFrames(previous_frame_detections, (centerX, centerY, w, h), current_detections, 1)
 
                 if not found_in_previous:
                     ID = unique_id_counter
