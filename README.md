@@ -13,13 +13,13 @@
   1. `mcgill_drive`:
    
    ```
-   ~$python3 mcgill_drive.py
+   python3 mcgill_drive.py
    ```
 
   2. `st-catherines_drive.mp4`:
    
    ```
-   ~$python3 st_catherine.py
+   python3 st_catherine.py
    ```
 
   3. The results from the video detection from the scripts or the notebook will be in `data/`
